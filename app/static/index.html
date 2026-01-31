@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Phone Detection AI</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body>
+    <div class="background-blob"></div>
+    <div class="container">
+      <header>
+        <h1>Phone Detection AI</h1>
+        <p>Advanced Computer Vision for Exam Proctoring</p>
+      </header>
+
+      <main>
+            <div class="mode-switch">
+                <button id="btn-upload" class="mode-btn active">Upload Image</button>
+                <button id="btn-webcam" class="mode-btn">Live Webcam</button>
+            </div>
+
+            <div id="upload-section">
+                <div id="drop-zone" class="upload-area">
+                    <div class="upload-icon">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 16L12 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M9 11L12 8 15 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M8 16H16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M3 21H21C21.5523 21 22 20.5523 22 20V4C22 3.44772 21.5523 3 21 3H3C2.44772 3 2 3.44772 2 4V20C2 20.5523 2.44772 21 3 21Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <h3>Drag & Drop Image Here</h3>
+                    <p>or click to browse</p>
+                    <input type="file" id="file-input" accept="image/*" hidden>
+                </div>
+
+                <div id="result-area" class="result-container hidden">
+                    <div class="canvas-wrapper">
+                        <img id="source-image" src="" alt="Source">
+                        <canvas id="detection-canvas"></canvas>
+                    </div>
+                </div>
+            </div>
+
+      <div id="webcam-section" class="hidden">
+          <div class="canvas-wrapper">
+              <video id="webcam-video" autoplay playsinline muted></video>
+              <canvas id="webcam-canvas"></canvas>
+          </div>
+          <div class="controls-row">
+              <button id="btn-start-cam" class="action-btn">Start Camera</button>
+              <button id="btn-calibrate" class="action-btn secondary" disabled>Calibrate Behavior</button>
+              <button id="btn-record" class="action-btn" disabled>Start Recording</button>
+          </div>
+          
+          <div id="logs-panel" class="logs-container">
+              <h3>Live Session Log</h3>
+              <div id="logs-list"></div>
+          </div>
+      </div>
+
+      <div id="loader" class="loader hidden">
+          <div class="spinner"></div>
+          Analyzing...
+      </div>
+    </main>
+    </div>
+
+    <script src="/static/script.js"></script>
+  </body>
+</html>
