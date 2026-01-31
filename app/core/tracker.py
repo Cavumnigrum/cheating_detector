@@ -56,7 +56,7 @@ class BehaviorTracker:
         
         head_pose = (0, 0, 0)
         landmarks_detected = False
-        
+        gaze_override = None
         if detection_result.face_landmarks:
             landmarks_detected = True
             landmarks = detection_result.face_landmarks[0] # List of NormalizedLandmark
