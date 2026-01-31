@@ -52,10 +52,12 @@ class CheatingDetector:
         self.calibrated = True
         print(f"[Logic] Calibrated: Yaw={yaw:.1f}, Pitch={pitch:.1f}")
 
-    def process(self, frame: np.ndarray, phone_detected: bool, head_pose: Tuple[float, float, float], gaze_override: str = None) -> Dict:
+    def process(self, frame: np.ndarray, phone_detected: bool, head_pose: Tuple[float, float, float], gaze_override: str = None, session_id: str = None) -> Dict:
         """
         Основной цикл логики
         """
+        from app.core.logger import session_logger # Lazy import to avoid circular dependency
+        
         current_time = time.time()
         pitch, yaw, roll = head_pose
         
@@ -109,19 +111,31 @@ class CheatingDetector:
         is_suspicious_now = False # Для логики записи
         
         # A. ТЕЛЕФОН
+        # A. ТЕЛЕФОН
         if phone_detected:
             self.state = "CHEATING" 
             reason = "PHONE_CONFIRMED"
             is_suspicious_now = True
             print("DEBUG: [Logic] CHEATING CONFIRMED: Phone Detected", flush=True)
             
+            # LOGGING
+            if session_id:
+                session_logger.log_event(session_id, "VIOLATION_PHONE", {"confidence": "high"})
+            
         
         elif current_state != "Looking at Screen" and (self.calibrated or gaze_override):
             if self.suspicion_start_time == 0:
                 self.suspicion_start_time = current_time
                 self.state = "SUSPICIOUS"
+                if session_id:
+                        session_logger.log_event(session_id, "VIOLATION_GAZE_SUSPICIOUS", {"state": current_state})
+
             elif current_time - self.suspicion_start_time >= 3.0:
-                self.state = "ALERT"
+                if self.state != "ALERT":
+                     self.state = "ALERT"
+                     if session_id:
+                         session_logger.log_event(session_id, "VIOLATION_GAZE_ALERT", {"state": current_state, "duration": 3.0})
+
                 reason = f"PROLONGED_{current_state.upper().replace(' ', '_')}"
                 is_suspicious_now = True
         else:

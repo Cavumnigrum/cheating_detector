@@ -3,13 +3,15 @@ from app.core.config import settings
 from ml.model import PhoneDetector
 from ml.gaze import GazeDetector
 from app.core.tracker import BehaviorTracker
+from app.core.logger import session_logger
+import uuid
+import json
 
 router = APIRouter()
 
-# Инициализация моделей
+# Инициализация моделей (Глобальные, так как они тяжелые и stateless)
 detector = PhoneDetector(settings.MODEL_PATH)
 gaze_detector = GazeDetector() 
-tracker = BehaviorTracker() # Новый экземпляр трекера
 
 @router.post("/detect")
 async def detect_phones(file: UploadFile = File(...)):
@@ -23,6 +25,18 @@ async def detect_phones(file: UploadFile = File(...)):
 @router.websocket("/ws/detect")
 async def websocket_endpoint(websocket: WebSocket):
     await websocket.accept()
+    
+    # Session Setup
+    session_id = str(uuid.uuid4())
+    client_ip = websocket.client.host if websocket.client else "unknown"
+    
+    # Per-Session Tracker (Isolates state per user)
+    local_tracker = BehaviorTracker()
+    
+    # Log Start
+    session_logger.log_session_start(session_id, client_ip)
+    print(f"Session Started: {session_id} ({client_ip})")
+    
     try:
         while True:
             # Обработка текста (команды) или байтов (изображения)
@@ -30,13 +44,10 @@ async def websocket_endpoint(websocket: WebSocket):
             
             if "text" in message:
                  # Обработка команд (например, {"type": "calibrate"})
-                 import json
-                 cmd = json.loads(message["text"])
-                 if cmd.get("type") == "calibrate":
-                     print("Received Calibration Request")
-                     # Установить флаг для следующего кадра
-                     if hasattr(tracker, 'trigger_calibration'):
-                         tracker.trigger_calibration()
+                 msg_data = json.loads(message["text"])
+                 if msg_data.get("type") == "calibrate":
+                     print(f"Received Calibration Request [{session_id}]")
+                     local_tracker.trigger_calibration()
                  continue
             
             if "bytes" not in message:
@@ -55,7 +66,6 @@ async def websocket_endpoint(websocket: WebSocket):
                 continue
 
             # Heartbeat (Подтверждение активности)
-            import time
             if not hasattr(websocket, 'frame_count'): websocket.frame_count = 0
             websocket.frame_count += 1
             if websocket.frame_count % 30 == 0:
@@ -66,11 +76,11 @@ async def websocket_endpoint(websocket: WebSocket):
             phone_detected = len(phone_results) > 0
             
             # 2. Анализ поведения (теперь включает Face Mesh)
-            behavior_status = tracker.process_frame(img, phone_detected)
+            # Передаем session_id для логирования событий
+            behavior_status = local_tracker.process_frame(img, phone_detected, session_id=session_id)
             
             # DEBUG: Печать статуса
             if phone_detected: print(f"Phone Detected! {len(phone_results)}", flush=True)
-            # if behavior_status['state'] != "NORMAL": print(f"Behavior: {behavior_status['state']}", flush=True)
 
             # Объединение
             response = {
@@ -81,7 +91,7 @@ async def websocket_endpoint(websocket: WebSocket):
             await websocket.send_json(response)
             
     except WebSocketDisconnect:
-        print("Client disconnected")
+        print(f"Client disconnected: {session_id}")
     except Exception as e:
         import traceback
         traceback.print_exc()
@@ -90,3 +100,7 @@ async def websocket_endpoint(websocket: WebSocket):
             await websocket.close()
         except:
             pass
+    finally:
+        # Log End
+        session_logger.log_session_end(session_id)
+        print(f"Session Ended: {session_id}")

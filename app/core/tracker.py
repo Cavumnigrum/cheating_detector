@@ -44,7 +44,7 @@ class BehaviorTracker:
         self.calibration_requested = True
  
 
-    def process_frame(self, frame_bgr, phone_detected=False):
+    def process_frame(self, frame_bgr, phone_detected=False, session_id=None):
         h, w, _ = frame_bgr.shape
         rgb_frame = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
         
@@ -199,7 +199,7 @@ class BehaviorTracker:
             self.calibration_requested = False
 
         # --- ЛОГИКА ОБНОВЛЕНИЯ ---
-        status = self.logic.process(frame_bgr, phone_detected, head_pose, gaze_override)
+        status = self.logic.process(frame_bgr, phone_detected, head_pose, gaze_override, session_id)
         
         if status['reason']:
              self._add_alert(status['reason'], status['state'])
